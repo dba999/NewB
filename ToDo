@@ -1,0 +1,10 @@
+
+- limit prevBtn and nextBtn if no other element to access
+
+- HTML center with canvas centered
+
+- resizable canvas or canvas size set according to screen size
+
+- test to APK
+
+- inject pixijs layer over flwebgl, at least for render
