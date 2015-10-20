@@ -39,8 +39,17 @@
 					}
 					
 					//Resize the canvas and reset the viewport
+					
+					// on part sur une homotétie de 800 x 530
+					var referentSizeW = 800; 
+					var referentSizeH = 530;
+					var ratio = referentSizeH / referentSizeW;
 					var w = player.getStageWidth();
 					var h = player.getStageHeight();
+					if (w>referentSizeW){w = referentSizeW;}
+					h = w * ratio;
+					
+					console.log("taille du fla : " + w + " X " + h);
 					canvas.width = w;
 					canvas.height = h;
 					player.setViewport(new flwebgl.geom.Rect(0, 0, w, h));				
@@ -104,15 +113,17 @@
 			btnPrev.stop();  // par la suite on ajoutera l'anim du click btn
 			}
 			function sourisDown(e) { 
-			var clickedAt = new flwebgl.geom.Point(e.pageX, e.pageY);
+			// Il faut connaitre la position du canvas car e
+			var posCanv = getPosition(canvas);
+			var clickedAt = new flwebgl.geom.Point(e.pageX-posCanv.x, e.pageY-posCanv.y);
 			var nextBounds = btnNext.getBounds(player.getStage());
 			var prevBounds = btnPrev.getBounds(player.getStage());
-			if (isPointInsideRect(clickedAt, nextBounds)) { // user clicked on NEXT
+			if (isPointInsideRect(clickedAt, nextBounds)&& btnNext.isVisible()) { // user clicked on NEXT
 				btnNext.gotoAndStop(2);
 				//console.log("btnNext cliqué");
 				nextPanel();
 				}
-			if (isPointInsideRect(clickedAt, prevBounds)) { // user clicked on NEXT
+			if (isPointInsideRect(clickedAt, prevBounds) && btnPrev.isVisible()) { // user clicked on NEXT
 				btnPrev.gotoAndStop(2);
 				//console.log("btnPrev cliqué");
 				prevPanel();
@@ -169,7 +180,9 @@
 				var prevNum = currentPanel-1;
 				var prevPanel = "mvtPanel"+prevNum.toString();
 				cleanPanel(prevPanel);
+				btnPrev.setVisible(true);
 			}else{
+				btnNext.setVisible(false);
 				currentPanel --;
 				animShake(-50);
 				}
@@ -192,7 +205,10 @@
 				var nowNum = currentPanel+1;
 				var nowPanel = "mvtPanel"+nowNum.toString();
 				cleanPanel(nowPanel);
+				btnNext.setVisible(true);
 				}else{
+				// disable btnPrev :
+				btnPrev.setVisible(false);
 				currentPanel ++;
 				animShake(50);
 				}
@@ -274,13 +290,32 @@
 							// cette fois le shake est fini
 						  }
 						});	
-				  
-					console.log('Hooray, all done!  Final value: ' + state.x);
 				  }
 				});
 			}
-			
+			function getPosition(element) {
+				var xPosition = 0;
+				var yPosition = 0;
+			  
+				while(element) {
+					xPosition += (element.offsetLeft - element.scrollLeft + element.clientLeft);
+					yPosition += (element.offsetTop - element.scrollTop + element.clientTop);
+					element = element.offsetParent;
+				}
+				return { x: xPosition, y: yPosition };
+			}
 		</script>	
+		<style>
+		body {
+			background: #2D2D2D;
+		}
+		canvas{
+			background: rgb(237, 237, 237) none repeat scroll 0% 0%;
+			width: 300px;
+			height: auto;
+			float: none;
+		}
+		</style>
 	</head>
 	<body onload="loadContent();">     
 		<canvas id="canvas" style="border: none;"></canvas>
