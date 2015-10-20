@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html>
+				<!-- **************************************************************** -->
+				<!-- Version NewB utilisant flash pro CC 2014 pour générer les panels -->
+				<!-- **************************************************************** -->
+	<head>
+		<meta charset="UTF-8">
+		<title>NewBalloon Alpha</title>
+		<script src="libs/flwebgl-0.2.min.js"></script>
+		<script src="libs/shifty.min.js "></script>
+		<script>
+			var player, result = flwebgl.Player.S_OK;
+			var atlasList = [], content = undefined;
+		//window.onload= function() {}
+			
+			function loadContent() {
+				getAsset("assets/NewBalloon.json", function (response) {content = JSON.parse(response); assetLoaded(); });
+				getAsset("assets/NewBalloon_atlas.json", function (response) { atlasList.push({json:JSON.parse(response), image:"assets/NewBalloon_atlas.png"}); assetLoaded(); });
+			}
+			
+			function assetLoaded() {
+				if (atlasList.length == 1 && content) {
+					var canvas = document.getElementById("canvas");
+					player = new flwebgl.Player();
+
+					//Create textureatlas object for all the textures which you have
+					var textureAtlasList = [];
+					for (var i = 0; i < atlasList.length; i++) {
+						textureAtlasList.push(new flwebgl.TextureAtlas(atlasList[i].json, atlasList[i].image));
+					}
+					
+					result = player.init(canvas, content, textureAtlasList, handleComplete);
+					
+					if(result === flwebgl.Player.E_CONTEXT_CREATION_FAILED) {
+						document.getElementById("err_nowebglsupport").style.display="block";
+						return;
+					} else if(result === flwebgl.Player.E_REQUIRED_EXTENSION_NOT_PRESENT) {
+						document.getElementById("err_extensionnotpresent").style.display="block";
+						return;
+					}
+					
+					//Resize the canvas and reset the viewport
+					
+					
+					// décidons d'abord des dimensions du div canvas en fonction de la taille du browser
+					var browserSizeW = document.documentElement.clientWidth;
+					var browserSizeH =	document.documentElement.clientHeight;
+					var referentSizeW = player.getStageWidth(); 
+					var referentSizeH = player.getStageHeight();
+					var ratio = referentSizeH / referentSizeW;
+					// on part sur une homotétie de 800 x 530 mais en principe on peut changer ça dans le fla
+					// Le canvas ne sera pas plus large que la largeur définie dans le fla
+					if (browserSizeW <= referentSizeW ){
+						largCanvasDiv = browserSizeW;
+					}else{
+						largCanvasDiv = referentSizeW;
+					}
+					hautCanvasDiv = largCanvasDiv * ratio;
+					if (hautCanvasDiv > browserSizeH ) {
+						hautCanvasDiv = browserSizeH;
+						largCanvasDiv = hautCanvasDiv / ratio;
+					}
+					// Maintenant on le positionne au centre de la largeur :
+					deltaLeft = (browserSizeW - largCanvasDiv)/2;
+					deltaTop = (browserSizeH - hautCanvasDiv)/2;
+
+					// nous décidons donc que le css du div canvas (qui a déjà un position:absolute) aura :	
+					canvas.style.width = largCanvasDiv.toString()+"px";
+					canvas.style.height = hautCanvasDiv.toString()+"px";
+					canvas.style.left = deltaLeft.toString()+"px";
+					canvas.style.top = deltaTop.toString()+"px";
+					
+					var w = player.getStageWidth();
+					var h = player.getStageHeight();
+					canvas.width = w;
+					canvas.height = h;
+					player.setViewport(new flwebgl.geom.Rect(0, 0, w, h));	
+					
+					
+					// Profitons-en pour enregistrer le scale factor que nous venons d'appliquer par rapport au fla d'origine :
+					scaleFactor = largCanvasDiv / referentSizeW ;
+					
+					// on part sur une homotétie de 800 x 530
+					/* referentSizeW = 800; 
+					referentSizeH = 530;
+					var ratio = referentSizeH / referentSizeW;
+					w = player.getStageWidth();
+					h = player.getStageHeight();
+					console.log("1111111 " + player.getStageHeight());
+					console.log(w);
+					if (w>referentSizeW){w = referentSizeW;} */
+					
+					
+					/* browserSizeW =   document.documentElement.clientWidth;
+					browserSizeH =	document.documentElement.clientHeight;
+					referentSizeW = player.getStageWidth(); 
+					referentSizeH = player.getStageHeight();
+					console.log("referentSizes : "+referentSizeW +", "+referentSizeH);
+					console.log("Canvas : " + canvas.width + " , " + canvas.height);
+					var ratio = referentSizeH / referentSizeW;
+					console.log ("ratio : " + ratio);
+					console.log("-------" + document.getElementById('canvas').clientWidth );
+					w = browserSizeW;
+					h = w * ratio;
+					canvas.width = w;
+					canvas.height = h;
+					player.setViewport(new flwebgl.geom.Rect(0, 0, referentSizeW, referentSizeH));		
+				*/
+				}
+			}
+			
+			function getAsset(url, callbk) {
+				if (!window.XMLHttpRequest) {
+					document.getElementById("err_nowebglsupport").style.display="block";
+					return;
+				}
+				
+				var req = new XMLHttpRequest();
+				req.onreadystatechange = function() {
+					if (req.readyState == 4 && req.status == 200)
+						callbk(req.responseText);
+				};
+				req.open("GET", url, true);
+				req.send();
+			}
+			
+			function handleComplete() {
+				if(result === flwebgl.Player.S_OK) {
+					player.play();
+					
+					// ==> This is a good place to add code <==		
+					newBalloonSetup();
+				}
+			}
+			function newBalloonSetup(){
+			// En javascript, une variable directement déclarée sans mettre var devant est globale
+			chapNbPanels = 4;
+			currentPanel = 1;
+			clickNext = false;
+			currentAnimType = "Once";
+			sgf = player.getScenegraphFactory();
+			document.onmousedown = sourisDown;
+			document.onmouseup = sourisUp;
+			addBtnNext();
+			addBtnPrev();
+			callPanel("mvtPanel1");			
+			}
+			function addBtnNext(){
+			btnNext = sgf.createMovieClipInstance("btnNext");
+			player.getStage().addChildAt(btnNext,0);
+			var largBtn = btnNext.getBounds(player.getStage()).width; 
+			var hautBtn = btnNext.getBounds(player.getStage()).height;
+			var posX = player.getStageWidth() - largBtn;
+			// comme le clip du btn est centré dans le fla :
+			var posY = (player.getStageHeight()/2); 
+			setPosition(btnNext, posX, posY);
+			btnNext.stop(); 
+			}
+			function addBtnPrev(){
+			btnPrev = sgf.createMovieClipInstance("btnNext");
+			player.getStage().addChildAt(btnPrev,1);
+			// on utilise le même clip que pour le next, et on l'inverse
+			var mat = btnPrev.getLocalTransform();
+			mat.scale(-1,1);
+			
+			// positionnement :
+			var largBtn = btnPrev.getBounds(player.getStage()).width; 
+			var hautBtn = btnPrev.getBounds(player.getStage()).height;
+			var posX = largBtn /2;
+			// comme le clip du btn est centré dans le fla :
+			var posY = (player.getStageHeight()/2); 
+			setPosition(btnPrev, posX, posY);
+			
+			mat.translate(posX, posY);
+			btnPrev.setLocalTransform(mat);
+			
+			btnPrev.stop();  // par la suite on ajoutera l'anim du click btn
+			}
+			function sourisDown(e) { 
+			var clickedAt = new flwebgl.geom.Point(e.pageX, e.pageY);
+			//console.log("Avant :   "+ clickedAt.x + ", "+ clickedAt.y);
+			clickedAt = localToGlobal(clickedAt);
+			//console.log("Après :   "+ clickedAt.x + ", "+ clickedAt.y);
+			var nextBounds = btnNext.getBounds(player.getStage());
+			var prevBounds = btnPrev.getBounds(player.getStage());
+			if (isPointInsideRect(clickedAt, nextBounds)&& btnNext.isVisible()) { // user clicked on NEXT
+				btnNext.gotoAndStop(2);
+				//console.log("btnNext cliqué");
+				nextPanel();
+				}
+			if (isPointInsideRect(clickedAt, prevBounds) && btnPrev.isVisible()) { // user clicked on NEXT
+				btnPrev.gotoAndStop(2);
+				//console.log("btnPrev cliqué");
+				prevPanel();
+				}
+			}
+			
+			function sourisUp(e) {
+				btnNext.gotoAndStop(1);
+				btnPrev.gotoAndStop(1);
+			}
+			function nextPanel(){
+				//var prevPanel = "mvtPanel"+currentPanel.toString();
+				//console.log (prevPanel);
+				currentPanel ++;
+				var nextPanel = "mvtPanel"+currentPanel.toString();
+				console.log (nextPanel);
+				callPanel(nextPanel); // lancement du panel suivant
+			}
+			function prevPanel(){
+				//var nowPanel = "mvtPanel"+currentPanel.toString();
+				//console.log (prevPanel);
+				currentPanel --;
+				var prevPanel = "mvtPanel"+currentPanel.toString();
+				//console.log (nextPanel);
+				reCallPanel(prevPanel); // lancement du panel suivant
+			}
+			function cleanPanel(panelID){
+				var panelOuting = player.getStage().getChildByName(panelID);
+				if (panelOuting){
+				//console.log("nom du panel à faire partir : " + panelOuting.getName());
+					if (panelOuting.hasEventListener(flwebgl.events.Event.EXIT_FRAME, playingLoop)){
+						panelOuting.removeEventListener(flwebgl.events.Event.EXIT_FRAME, playingLoop);
+					}
+					if (panelOuting.hasEventListener(flwebgl.events.Event.EXIT_FRAME, playingOnce)){
+						panelOuting.removeEventListener(flwebgl.events.Event.EXIT_FRAME, playingOnce);
+						panelOuting.play();
+					}
+					panelOuting.gotoAndPlay("out");
+					panelOuting.addEventListener(flwebgl.events.Event.EXIT_FRAME, destroyMe);
+				}
+			}
+			function callPanel(panelID){
+			var panel = sgf.createMovieClipInstance(panelID);
+			if (panel){
+				panel.setName(panelID);
+				player.getStage().addChildAt(panel,2);
+				// var totalFrames = panel.getTotalFrames();
+				// docu : https://helpx.adobe.com/fr/flash/webgl-runtime-api-help/movieclip.html#getFrameLabels()
+				var labels = panel.getFrameLabels(); // renvoit ttes les etiquettes du clip
+				if (labels[1].name == "loop") {  // si la deuxième étiquette du clip est 'loop' :
+					panel.addEventListener(flwebgl.events.Event.EXIT_FRAME, playingLoop);
+					}else {
+					panel.addEventListener(flwebgl.events.Event.EXIT_FRAME, playingOnce);
+					};
+				var prevNum = currentPanel-1;
+				var prevPanel = "mvtPanel"+prevNum.toString();
+				cleanPanel(prevPanel);
+				btnPrev.setVisible(true);
+			}else{
+				btnNext.setVisible(false);
+				currentPanel --;
+				animShake(-50);
+				}
+			}
+			function reCallPanel(panelID){
+			var panel = sgf.createMovieClipInstance(panelID);
+			if (panel){
+				panel.setName(panelID);
+				player.getStage().addChildAt(panel,2);
+				// var totalFrames = panel.getTotalFrames();
+				// docu : https://helpx.adobe.com/fr/flash/webgl-runtime-api-help/movieclip.html#getFrameLabels()
+				var labels = panel.getFrameLabels(); // renvoit ttes les etiquettes du clip
+				if (labels[1].name == "loop") {  // si la deuxième étiquette du clip est 'loop' :
+					panel.gotoAndPlay("loop");
+					panel.addEventListener(flwebgl.events.Event.EXIT_FRAME, playingLoop);
+					}else {
+					panel.gotoAndPlay("once");
+					panel.addEventListener(flwebgl.events.Event.EXIT_FRAME, playingOnce);
+					};
+				var nowNum = currentPanel+1;
+				var nowPanel = "mvtPanel"+nowNum.toString();
+				cleanPanel(nowPanel);
+				btnNext.setVisible(true);
+				}else{
+				// disable btnPrev :
+				btnPrev.setVisible(false);
+				currentPanel ++;
+				animShake(50);
+				}
+			}			
+
+			function isPointInsideRect(point, rect) {
+			  if (point.x > rect.left && point.x < (rect.left + rect.width)) {
+				if (point.y > rect.top && point.y < (rect.top + rect.height)) {
+				  return true;
+				}
+			  }
+			  return false;
+			}
+			
+			function playingOnce(e) {
+			var clip = e.getTarget();
+			switch(clip.getCurrentFrameLabel()) {
+				case "out":
+				  clip.stop();
+				  break;
+			  }
+			}
+			// fct déclenchée à chaque fois que le clip passe à l'image suivante
+			function playingLoop(e) {
+			var clip = e.getTarget();
+			switch(clip.getCurrentFrameLabel()) {
+				case "out":
+				  clip.gotoAndPlay("loop");
+				  break;
+			  }
+			}
+			function destroyMe(e) {
+			var clip = e.getTarget();
+			
+			var totalFrames = clip.getTotalFrames();
+				if(clip.getCurrentFrame() >= totalFrames){
+				 player.getStage().removeChild(clip);
+				}
+			}
+			function setPosition(mc, x, y) {
+			var mat = new flwebgl.geom.Matrix([1, 0, 0, 1, x, y]);
+			mc.setLocalTransform(mat);
+			}
+			function animShake (deltaShake) {
+			var clip = player.getStage().getChildByName("mvtPanel"+currentPanel.toString());
+			var matClip = clip.getLocalTransform(); 
+			var arr = matClip.getValues();
+			var clipX = clip.x;
+			var tweenable = new Tweenable();
+			//var pre = document.querySelector('test');
+			tweenable.tween({
+				  from:     { 'x': arr[4]  },
+				  to:       { 'x': arr[4]+deltaShake },
+				  duration: 300,
+				  easing : 'swingTo',
+				  step: function (state) {
+				  	arr[4] = Math.round(state.x); // in matrix array the 4th element is the X position
+					matClip.setValues(arr);
+					clip.setLocalTransform(matClip);
+				  },
+				  finish: function (state) {
+						// now the come back in initial place :
+						tweenable.tween({
+						  from:     { 'x': arr[4]  },
+						  to:       { 'x': arr[4]-deltaShake },
+						  duration: 300,
+						  easing : 'swingTo',
+						  step: function (state) {
+							arr[4] = Math.round(state.x); // in matrix array the 4th element is the X position
+							matClip.setValues(arr);
+							clip.setLocalTransform(matClip);
+						  },
+						  finish: function (state) {
+							// cette fois le shake est fini
+						  }
+						});	
+				  }
+				});
+			}
+			function getPosition(element) {
+				var xPosition = 0;
+				var yPosition = 0;
+			  
+				while(element) {
+					xPosition += (element.offsetLeft - element.scrollLeft + element.clientLeft);
+					yPosition += (element.offsetTop - element.scrollTop + element.clientTop);
+					element = element.offsetParent;
+				}
+				return { x: xPosition, y: yPosition };
+			}
+			function localToGlobal(point){
+				//console.log("scale Factor : " + scaleFactor);
+				// position du canvas dans le navigateur:
+				var posCanv = getPosition(canvas);
+				point.x -= deltaLeft;
+				point.y -= deltaTop;
+				point.x = point.x / scaleFactor;
+				point.y = point.y / scaleFactor;
+				
+				//point.x -= posCanv.x;
+				//point.y -= posCanv.y;
+
+				
+				return point;
+			}
+
+		</script>	
+		<style>
+		body {
+			background: #2D2D2D;
+			padding : 0px;
+			margin : 0;
+		}
+		#canvasWrapper{
+		background-color : rgb(250,250,0);
+		width : 300px;
+		height : 200px;
+		display: block;
+		overflow : hidden;
+		
+		}
+		canvas{
+			background: rgb(237, 0, 0) none repeat scroll 0% 0%;
+			position: absolute;
+		}
+		</style>
+	</head>
+	<body onload="loadContent();" id="body">  
+
+		<canvas id="canvas" style="border: none;"></canvas>
+		
+		<div class="error" id="err_nowebglsupport" style="display:none;"><span>Your browser does not support WebGL.</span>&nbsp;<span><a href="http://get.webgl.org">Check WebGL support.</a></span></div>
+		<div class="error" id="err_extensionnotpresent" style="display:none;">A required WebGL extension is not supported by your browser.</div>
+<!-- alternative au body onload : 
+<script>
+window.onload= function() {
+loadContent();
+}
+</script>  -->
+
+	</body>
+</html>
