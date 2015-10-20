@@ -7,6 +7,7 @@
 		<meta charset="UTF-8">
 		<title>NewBalloon Alpha</title>
 		<script src="libs/flwebgl-0.2.min.js"></script>
+		<script src="libs/shifty.min.js "></script>
 		<script>
 			var player, result = flwebgl.Player.S_OK;
 			var atlasList = [], content = undefined;
@@ -122,37 +123,35 @@
 				btnPrev.gotoAndStop(1);
 			}
 			function nextPanel(){
-				var prevPanel = "mvtPanel"+currentPanel.toString();
+				//var prevPanel = "mvtPanel"+currentPanel.toString();
 				//console.log (prevPanel);
 				currentPanel ++;
 				var nextPanel = "mvtPanel"+currentPanel.toString();
 				console.log (nextPanel);
-				// determiner le nom du panel suivant  TODO
-				cleanPanel(prevPanel); // nettoyage du panel à ranger
 				callPanel(nextPanel); // lancement du panel suivant
 			}
 			function prevPanel(){
-				var nowPanel = "mvtPanel"+currentPanel.toString();
+				//var nowPanel = "mvtPanel"+currentPanel.toString();
 				//console.log (prevPanel);
 				currentPanel --;
 				var prevPanel = "mvtPanel"+currentPanel.toString();
 				//console.log (nextPanel);
-				// determiner le nom du panel suivant  TODO
-				cleanPanel(nowPanel); // nettoyage du panel à ranger
 				reCallPanel(prevPanel); // lancement du panel suivant
 			}
 			function cleanPanel(panelID){
 				var panelOuting = player.getStage().getChildByName(panelID);
+				if (panelOuting){
 				//console.log("nom du panel à faire partir : " + panelOuting.getName());
-				if (panelOuting.hasEventListener(flwebgl.events.Event.EXIT_FRAME, playingLoop)){
-					panelOuting.removeEventListener(flwebgl.events.Event.EXIT_FRAME, playingLoop);
+					if (panelOuting.hasEventListener(flwebgl.events.Event.EXIT_FRAME, playingLoop)){
+						panelOuting.removeEventListener(flwebgl.events.Event.EXIT_FRAME, playingLoop);
+					}
+					if (panelOuting.hasEventListener(flwebgl.events.Event.EXIT_FRAME, playingOnce)){
+						panelOuting.removeEventListener(flwebgl.events.Event.EXIT_FRAME, playingOnce);
+						panelOuting.play();
+					}
+					panelOuting.gotoAndPlay("out");
+					panelOuting.addEventListener(flwebgl.events.Event.EXIT_FRAME, destroyMe);
 				}
-				if (panelOuting.hasEventListener(flwebgl.events.Event.EXIT_FRAME, playingOnce)){
-					panelOuting.removeEventListener(flwebgl.events.Event.EXIT_FRAME, playingOnce);
-					panelOuting.play();
-				}
-				panelOuting.gotoAndPlay("out");
-				panelOuting.addEventListener(flwebgl.events.Event.EXIT_FRAME, destroyMe);
 			}
 			function callPanel(panelID){
 			var panel = sgf.createMovieClipInstance(panelID);
@@ -167,37 +166,43 @@
 					}else {
 					panel.addEventListener(flwebgl.events.Event.EXIT_FRAME, playingOnce);
 					};
+				var prevNum = currentPanel-1;
+				var prevPanel = "mvtPanel"+prevNum.toString();
+				cleanPanel(prevPanel);
 			}else{
-				console.log("Plus personne chef !");
-			}
+				currentPanel --;
+				animShake(-50);
+				}
 			}
 			function reCallPanel(panelID){
 			var panel = sgf.createMovieClipInstance(panelID);
-			panel.setName(panelID);
-			player.getStage().addChildAt(panel,2);
-			// var totalFrames = panel.getTotalFrames();
-			// docu : https://helpx.adobe.com/fr/flash/webgl-runtime-api-help/movieclip.html#getFrameLabels()
-			var labels = panel.getFrameLabels(); // renvoit ttes les etiquettes du clip
-			if (labels[1].name == "loop") {  // si la deuxième étiquette du clip est 'loop' :
-				panel.gotoAndPlay("loop");
-				panel.addEventListener(flwebgl.events.Event.EXIT_FRAME, playingLoop);
-				}else {
-				panel.gotoAndPlay("once");
-				panel.addEventListener(flwebgl.events.Event.EXIT_FRAME, playingOnce);
-				};
+			if (panel){
+				panel.setName(panelID);
+				player.getStage().addChildAt(panel,2);
+				// var totalFrames = panel.getTotalFrames();
+				// docu : https://helpx.adobe.com/fr/flash/webgl-runtime-api-help/movieclip.html#getFrameLabels()
+				var labels = panel.getFrameLabels(); // renvoit ttes les etiquettes du clip
+				if (labels[1].name == "loop") {  // si la deuxième étiquette du clip est 'loop' :
+					panel.gotoAndPlay("loop");
+					panel.addEventListener(flwebgl.events.Event.EXIT_FRAME, playingLoop);
+					}else {
+					panel.gotoAndPlay("once");
+					panel.addEventListener(flwebgl.events.Event.EXIT_FRAME, playingOnce);
+					};
+				var nowNum = currentPanel+1;
+				var nowPanel = "mvtPanel"+nowNum.toString();
+				cleanPanel(nowPanel);
+				}else{
+				currentPanel ++;
+				animShake(50);
+				}
 			}			
 			
 			
 			function onAdd() {
 			console.log("Ce bouton ne sert à rien.");
 			}
-			function setPosition(mc, x, y) {
-			  var mat = new flwebgl.geom.Matrix([1, 0, 0, 1, x, y]);
-			  mc.setLocalTransform(mat);
-			}
-			function setScale(mc, x, y) {
-			
-			}
+
 			function isPointInsideRect(point, rect) {
 			  if (point.x > rect.left && point.x < (rect.left + rect.width)) {
 				if (point.y > rect.top && point.y < (rect.top + rect.height)) {
@@ -231,13 +236,55 @@
 				if(clip.getCurrentFrame() >= totalFrames){
 				 player.getStage().removeChild(clip);
 				}
-			}			
+			}
+			function setPosition(mc, x, y) {
+			var mat = new flwebgl.geom.Matrix([1, 0, 0, 1, x, y]);
+			mc.setLocalTransform(mat);
+			}
+			function animShake (deltaShake) {
+			var clip = player.getStage().getChildByName("mvtPanel"+currentPanel.toString());
+			var matClip = clip.getLocalTransform(); 
+			var arr = matClip.getValues();
+			var clipX = clip.x;
+			var tweenable = new Tweenable();
+			//var pre = document.querySelector('test');
+			tweenable.tween({
+				  from:     { 'x': arr[4]  },
+				  to:       { 'x': arr[4]+deltaShake },
+				  duration: 300,
+				  easing : 'swingTo',
+				  step: function (state) {
+				  	arr[4] = Math.round(state.x); // in matrix array the 4th element is the X position
+					matClip.setValues(arr);
+					clip.setLocalTransform(matClip);
+				  },
+				  finish: function (state) {
+						// now the come back in initial place :
+						tweenable.tween({
+						  from:     { 'x': arr[4]  },
+						  to:       { 'x': arr[4]-deltaShake },
+						  duration: 300,
+						  easing : 'swingTo',
+						  step: function (state) {
+							arr[4] = Math.round(state.x); // in matrix array the 4th element is the X position
+							matClip.setValues(arr);
+							clip.setLocalTransform(matClip);
+						  },
+						  finish: function (state) {
+							// cette fois le shake est fini
+						  }
+						});	
+				  
+					console.log('Hooray, all done!  Final value: ' + state.x);
+				  }
+				});
+			}
 			
 		</script>	
 	</head>
 	<body onload="loadContent();">     
 		<canvas id="canvas" style="border: none;"></canvas>
-		<br><button onclick="onAdd();">Add</button>
+		<br><button id ="uselessBtn" onclick="onAdd();">Add</button>
 		
 		<div class="error" id="err_nowebglsupport" style="display:none;"><span>Your browser does not support WebGL.</span>&nbsp;<span><a href="http://get.webgl.org">Check WebGL support.</a></span></div>
 		<div class="error" id="err_extensionnotpresent" style="display:none;">A required WebGL extension is not supported by your browser.</div>
