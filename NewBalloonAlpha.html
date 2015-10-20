@@ -41,39 +41,71 @@
 					
 					//Resize the canvas and reset the viewport
 					
+					
+					// décidons d'abord des dimensions du div canvas en fonction de la taille du browser
+					var browserSizeW = document.documentElement.clientWidth;
+					var browserSizeH =	document.documentElement.clientHeight;
+					var referentSizeW = player.getStageWidth(); 
+					var referentSizeH = player.getStageHeight();
+					var ratio = referentSizeH / referentSizeW;
+					// on part sur une homotétie de 800 x 530 mais en principe on peut changer ça dans le fla
+					// Le canvas ne sera pas plus large que la largeur définie dans le fla
+					if (browserSizeW <= referentSizeW ){
+						largCanvasDiv = browserSizeW;
+					}else{
+						largCanvasDiv = referentSizeW;
+					}
+					hautCanvasDiv = largCanvasDiv * ratio;
+					if (hautCanvasDiv > browserSizeH ) {
+						hautCanvasDiv = browserSizeH;
+						largCanvasDiv = hautCanvasDiv / ratio;
+					}
+					// Maintenant on le positionne au centre de la largeur :
+					deltaLeft = (browserSizeW - largCanvasDiv)/2;
+					deltaTop = (browserSizeH - hautCanvasDiv)/2;
+
+					// nous décidons donc que le css du div canvas (qui a déjà un position:absolute) aura :	
+					canvas.style.width = largCanvasDiv.toString()+"px";
+					canvas.style.height = hautCanvasDiv.toString()+"px";
+					canvas.style.left = deltaLeft.toString()+"px";
+					canvas.style.top = deltaTop.toString()+"px";
+					
+					var w = player.getStageWidth();
+					var h = player.getStageHeight();
+					canvas.width = w;
+					canvas.height = h;
+					player.setViewport(new flwebgl.geom.Rect(0, 0, w, h));	
+					
+					
+					// Profitons-en pour enregistrer le scale factor que nous venons d'appliquer par rapport au fla d'origine :
+					scaleFactor = largCanvasDiv / referentSizeW ;
+					
 					// on part sur une homotétie de 800 x 530
 					/* referentSizeW = 800; 
 					referentSizeH = 530;
 					var ratio = referentSizeH / referentSizeW;
 					w = player.getStageWidth();
 					h = player.getStageHeight();
-console.log("1111111 " + player.getStageHeight());
+					console.log("1111111 " + player.getStageHeight());
 					console.log(w);
 					if (w>referentSizeW){w = referentSizeW;} */
 					
+					
+					/* browserSizeW =   document.documentElement.clientWidth;
+					browserSizeH =	document.documentElement.clientHeight;
 					referentSizeW = player.getStageWidth(); 
 					referentSizeH = player.getStageHeight();
 					console.log("referentSizes : "+referentSizeW +", "+referentSizeH);
 					console.log("Canvas : " + canvas.width + " , " + canvas.height);
 					var ratio = referentSizeH / referentSizeW;
 					console.log ("ratio : " + ratio);
-					console.log("-------" + document.getElementById('canvasWrapper').clientWidth );
-					w = document.getElementById('canvasWrapper').clientWidth;
+					console.log("-------" + document.getElementById('canvas').clientWidth );
+					w = browserSizeW;
 					h = w * ratio;
-					document.getElementById('canvasWrapper').clientHeight = h;
-					console.log("canvas : " + canvas.width + ", " +canvas.height+"   wrapper width : " + document.getElementById('canvasWrapper').clientWidth + " wrapper height : "+document.getElementById('canvasWrapper').clientHeight + " w = " + w + " h = " + h);
 					canvas.width = w;
-					//canvas.clientWidth = w;
 					canvas.height = h;
-					player.setViewport(new flwebgl.geom.Rect(0, 0, w, h));		
-					console.log("Canvas : " + canvas.width + " , " + canvas.height);
-				console.log("stage  : " + player.getStageWidth() + ", "+player.getStageHeight());
-				// il faudrait rescaler le stage
-				stageNow = player.getStage();
-				
-				var stageR = stageNow.getBounds(stageNow);
-				console.log("stage : " +stageR.width);
-				
+					player.setViewport(new flwebgl.geom.Rect(0, 0, referentSizeW, referentSizeH));		
+				*/
 				}
 			}
 			
@@ -111,41 +143,44 @@ console.log("1111111 " + player.getStageHeight());
 			document.onmouseup = sourisUp;
 			addBtnNext();
 			addBtnPrev();
-			callPanel("mvtPanel1");
-			
-			var info1 = player.getStage().getGlobalTransform();
-			var arr1 = info1.getValues();
-			var info2 = player.getStage().getLocalTransform();
-			var arr2 = info2.getValues();
-			console.log("Stage : " + arr1 + " ||| " + arr2);
-			
-			
+			callPanel("mvtPanel1");			
 			}
 			function addBtnNext(){
 			btnNext = sgf.createMovieClipInstance("btnNext");
 			player.getStage().addChildAt(btnNext,0);
-			setPosition(btnNext, 423, 180);
-			btnNext.stop();  // par la suite on ajoutera l'anim du click btn
+			var largBtn = btnNext.getBounds(player.getStage()).width; 
+			var hautBtn = btnNext.getBounds(player.getStage()).height;
+			var posX = player.getStageWidth() - largBtn;
+			// comme le clip du btn est centré dans le fla :
+			var posY = (player.getStageHeight()/2); 
+			setPosition(btnNext, posX, posY);
+			btnNext.stop(); 
 			}
 			function addBtnPrev(){
 			btnPrev = sgf.createMovieClipInstance("btnNext");
 			player.getStage().addChildAt(btnPrev,1);
-			// le set position foire les opération matrix ci dessous
-			//setPosition(btnPrev, 160, 180);
-			var mat = btnPrev.getLocalTransform(); // Renvoit la transf locale sous forme de matrix
-			//mat.rotate(180 * Math.PI / 180);
+			// on utilise le même clip que pour le next, et on l'inverse
+			var mat = btnPrev.getLocalTransform();
 			mat.scale(-1,1);
-			mat.translate(100,180);
- 
+			
+			// positionnement :
+			var largBtn = btnPrev.getBounds(player.getStage()).width; 
+			var hautBtn = btnPrev.getBounds(player.getStage()).height;
+			var posX = largBtn /2;
+			// comme le clip du btn est centré dans le fla :
+			var posY = (player.getStageHeight()/2); 
+			setPosition(btnPrev, posX, posY);
+			
+			mat.translate(posX, posY);
 			btnPrev.setLocalTransform(mat);
-
+			
 			btnPrev.stop();  // par la suite on ajoutera l'anim du click btn
 			}
 			function sourisDown(e) { 
 			var clickedAt = new flwebgl.geom.Point(e.pageX, e.pageY);
-			console.log(clickedAt);
+			//console.log("Avant :   "+ clickedAt.x + ", "+ clickedAt.y);
 			clickedAt = localToGlobal(clickedAt);
-			console.log(clickedAt);
+			//console.log("Après :   "+ clickedAt.x + ", "+ clickedAt.y);
 			var nextBounds = btnNext.getBounds(player.getStage());
 			var prevBounds = btnPrev.getBounds(player.getStage());
 			if (isPointInsideRect(clickedAt, nextBounds)&& btnNext.isVisible()) { // user clicked on NEXT
@@ -244,11 +279,6 @@ console.log("1111111 " + player.getStageHeight());
 				animShake(50);
 				}
 			}			
-			
-			
-			function onAdd() {
-			console.log("Ce bouton ne sert à rien.");
-			}
 
 			function isPointInsideRect(point, rect) {
 			  if (point.x > rect.left && point.x < (rect.left + rect.width)) {
@@ -336,16 +366,18 @@ console.log("1111111 " + player.getStageHeight());
 				return { x: xPosition, y: yPosition };
 			}
 			function localToGlobal(point){
-			var matClip = player.getStage().getGlobalTransform(); 
-			var arr = matClip.getValues();
-			console.log("arr : " + arr);
-			var stageRect = player.getStage().getBounds();
-			var scaleFactor = stageRect.width/referentSizeW;
-			console.log("scale Factor : " + scaleFactor);
+				//console.log("scale Factor : " + scaleFactor);
 				// position du canvas dans le navigateur:
 				var posCanv = getPosition(canvas);
-				point.x -= posCanv.x;
-				point.y -= posCanv.y;
+				point.x -= deltaLeft;
+				point.y -= deltaTop;
+				point.x = point.x / scaleFactor;
+				point.y = point.y / scaleFactor;
+				
+				//point.x -= posCanv.x;
+				//point.y -= posCanv.y;
+
+				
 				return point;
 			}
 
@@ -353,7 +385,7 @@ console.log("1111111 " + player.getStageHeight());
 		<style>
 		body {
 			background: #2D2D2D;
-			padding : 20px;
+			padding : 0px;
 			margin : 0;
 		}
 		#canvasWrapper{
@@ -366,17 +398,13 @@ console.log("1111111 " + player.getStageHeight());
 		}
 		canvas{
 			background: rgb(237, 0, 0) none repeat scroll 0% 0%;
-			width: 100%;
-			height: 100%;
-			float: none;
+			position: absolute;
 		}
 		</style>
 	</head>
-	<body onload="loadContent();">  
-		<div id="canvasWrapper">
+	<body onload="loadContent();" id="body">  
+
 		<canvas id="canvas" style="border: none;"></canvas>
-		</div>
-		<br><button id ="uselessBtn" onclick="onAdd();">Add</button>
 		
 		<div class="error" id="err_nowebglsupport" style="display:none;"><span>Your browser does not support WebGL.</span>&nbsp;<span><a href="http://get.webgl.org">Check WebGL support.</a></span></div>
 		<div class="error" id="err_extensionnotpresent" style="display:none;">A required WebGL extension is not supported by your browser.</div>
