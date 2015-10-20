@@ -11,6 +11,7 @@
 		<script>
 			var player, result = flwebgl.Player.S_OK;
 			var atlasList = [], content = undefined;
+		//window.onload= function() {}
 			
 			function loadContent() {
 				getAsset("assets/NewBalloon.json", function (response) {content = JSON.parse(response); assetLoaded(); });
@@ -41,18 +42,38 @@
 					//Resize the canvas and reset the viewport
 					
 					// on part sur une homotétie de 800 x 530
-					var referentSizeW = 800; 
-					var referentSizeH = 530;
+					/* referentSizeW = 800; 
+					referentSizeH = 530;
 					var ratio = referentSizeH / referentSizeW;
-					var w = player.getStageWidth();
-					var h = player.getStageHeight();
-					if (w>referentSizeW){w = referentSizeW;}
-					h = w * ratio;
+					w = player.getStageWidth();
+					h = player.getStageHeight();
+console.log("1111111 " + player.getStageHeight());
+					console.log(w);
+					if (w>referentSizeW){w = referentSizeW;} */
 					
-					console.log("taille du fla : " + w + " X " + h);
+					referentSizeW = player.getStageWidth(); 
+					referentSizeH = player.getStageHeight();
+					console.log("referentSizes : "+referentSizeW +", "+referentSizeH);
+					console.log("Canvas : " + canvas.width + " , " + canvas.height);
+					var ratio = referentSizeH / referentSizeW;
+					console.log ("ratio : " + ratio);
+					console.log("-------" + document.getElementById('canvasWrapper').clientWidth );
+					w = document.getElementById('canvasWrapper').clientWidth;
+					h = w * ratio;
+					document.getElementById('canvasWrapper').clientHeight = h;
+					console.log("canvas : " + canvas.width + ", " +canvas.height+"   wrapper width : " + document.getElementById('canvasWrapper').clientWidth + " wrapper height : "+document.getElementById('canvasWrapper').clientHeight + " w = " + w + " h = " + h);
 					canvas.width = w;
+					//canvas.clientWidth = w;
 					canvas.height = h;
-					player.setViewport(new flwebgl.geom.Rect(0, 0, w, h));				
+					player.setViewport(new flwebgl.geom.Rect(0, 0, w, h));		
+					console.log("Canvas : " + canvas.width + " , " + canvas.height);
+				console.log("stage  : " + player.getStageWidth() + ", "+player.getStageHeight());
+				// il faudrait rescaler le stage
+				stageNow = player.getStage();
+				
+				var stageR = stageNow.getBounds(stageNow);
+				console.log("stage : " +stageR.width);
+				
 				}
 			}
 			
@@ -91,6 +112,14 @@
 			addBtnNext();
 			addBtnPrev();
 			callPanel("mvtPanel1");
+			
+			var info1 = player.getStage().getGlobalTransform();
+			var arr1 = info1.getValues();
+			var info2 = player.getStage().getLocalTransform();
+			var arr2 = info2.getValues();
+			console.log("Stage : " + arr1 + " ||| " + arr2);
+			
+			
 			}
 			function addBtnNext(){
 			btnNext = sgf.createMovieClipInstance("btnNext");
@@ -113,9 +142,10 @@
 			btnPrev.stop();  // par la suite on ajoutera l'anim du click btn
 			}
 			function sourisDown(e) { 
-			// Il faut connaitre la position du canvas car e
-			var posCanv = getPosition(canvas);
-			var clickedAt = new flwebgl.geom.Point(e.pageX-posCanv.x, e.pageY-posCanv.y);
+			var clickedAt = new flwebgl.geom.Point(e.pageX, e.pageY);
+			console.log(clickedAt);
+			clickedAt = localToGlobal(clickedAt);
+			console.log(clickedAt);
 			var nextBounds = btnNext.getBounds(player.getStage());
 			var prevBounds = btnPrev.getBounds(player.getStage());
 			if (isPointInsideRect(clickedAt, nextBounds)&& btnNext.isVisible()) { // user clicked on NEXT
@@ -129,6 +159,7 @@
 				prevPanel();
 				}
 			}
+			
 			function sourisUp(e) {
 				btnNext.gotoAndStop(1);
 				btnPrev.gotoAndStop(1);
@@ -304,24 +335,57 @@
 				}
 				return { x: xPosition, y: yPosition };
 			}
+			function localToGlobal(point){
+			var matClip = player.getStage().getGlobalTransform(); 
+			var arr = matClip.getValues();
+			console.log("arr : " + arr);
+			var stageRect = player.getStage().getBounds();
+			var scaleFactor = stageRect.width/referentSizeW;
+			console.log("scale Factor : " + scaleFactor);
+				// position du canvas dans le navigateur:
+				var posCanv = getPosition(canvas);
+				point.x -= posCanv.x;
+				point.y -= posCanv.y;
+				return point;
+			}
+
 		</script>	
 		<style>
 		body {
 			background: #2D2D2D;
+			padding : 20px;
+			margin : 0;
+		}
+		#canvasWrapper{
+		background-color : rgb(250,250,0);
+		width : 300px;
+		height : 200px;
+		display: block;
+		overflow : hidden;
+		
 		}
 		canvas{
-			background: rgb(237, 237, 237) none repeat scroll 0% 0%;
-			width: 300px;
-			height: auto;
+			background: rgb(237, 0, 0) none repeat scroll 0% 0%;
+			width: 100%;
+			height: 100%;
 			float: none;
 		}
 		</style>
 	</head>
-	<body onload="loadContent();">     
+	<body onload="loadContent();">  
+		<div id="canvasWrapper">
 		<canvas id="canvas" style="border: none;"></canvas>
+		</div>
 		<br><button id ="uselessBtn" onclick="onAdd();">Add</button>
 		
 		<div class="error" id="err_nowebglsupport" style="display:none;"><span>Your browser does not support WebGL.</span>&nbsp;<span><a href="http://get.webgl.org">Check WebGL support.</a></span></div>
 		<div class="error" id="err_extensionnotpresent" style="display:none;">A required WebGL extension is not supported by your browser.</div>
+<!-- alternative au body onload : 
+<script>
+window.onload= function() {
+loadContent();
+}
+</script>  -->
+
 	</body>
 </html>
