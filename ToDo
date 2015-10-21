@@ -1,9 +1,9 @@
 
 
-- HTML center with canvas centered
 
-- resizable canvas or canvas size set according to screen size
 
 - test to APK
+
+- tester si avec le nouveau flwebgl les as3 injectés directement depuis le fla ne marchent pas maintenant ?
 
 - inject pixijs layer over flwebgl, at least for render
